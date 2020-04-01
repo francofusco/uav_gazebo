@@ -1,0 +1,13 @@
+<launch>
+
+  <!-- Load a URDF on the ROS parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find uav_gazebo)/urdf/drone.xacro'" />
+
+  <!-- spawn the robot into Gazebo -->
+  <arg name="pos_x" default="0"/>
+  <arg name="pos_y" default="0"/>
+  <arg name="pos_z" default="0.05"/>
+
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -urdf -model drone" output="screen"/>
+
+</launch>

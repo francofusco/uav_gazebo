@@ -11,6 +11,7 @@ namespace gazebo {
 const double UavGazeboPlugin::gravity = 9.81;
 const double UavGazeboPlugin::fz_tol = 0.01;
 
+
 void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
   // this plugin needs ROS, so check if it is running in a valid node
   if(!ros::isInitialized()) {
@@ -71,7 +72,6 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
 
   ROS_INFO_NAMED(_LOG_NAME_, _LOG_NAME_ " initialized (model: %s, "
     "inertial link: %s)", model_->GetName().c_str(), link_->GetName().c_str());
-
 }
 
 
@@ -253,104 +253,6 @@ void UavGazeboPlugin::update() {
     default: ROS_ERROR_NAMED(_LOG_NAME_, "REACHED INVALID POINT IN SWITCH CLAUSE");
   }
 }
-
-
-
-
-
-
-
-
-#ifdef SOMETHING_THAT_IS_NOT_DEFINED
-void UavGazeboPlugin::update() {
-  // get current state in the world frame
-  pose_ = link_->WorldPose();
-  linvel_ = link_->WorldLinearVel();
-  angvel_ = link_->WorldAngularVel();
-
-  im::Vector3d attitude_cmd(0,0,0);
-
-  if(control.mode == control.POSITION_YAW) {
-    // copy the comands
-    auto& _position = position_yaw_.position;
-    auto& _velocity = position_yaw_.velocity;
-    im::Vector3d position_cmd(_position.x, _position.y, _position.z);
-    im::Vector3d velocity_cmd(_velocity.x, _velocity.y, _velocity.z);
-    // evaluate the force corresponding to the acceleration pseudo-control
-    im::Vector3d force = M * ( pos_kp * (position_cmd - pose_.Pos()) + pos_kd * (velocity_cmd - linvel_) );
-    force.Z() += M * gravity; // gravity compensation
-    // make sure that the directional force points upward
-    if(force.Z() < fz_tol) {
-      force.Z() = fz_tol;
-    }
-    // convert the directional force into force & attitude commands
-    f.Z() = force.Length();
-    attitude_cmd.X() = std::atan2(-force.Y(), force.Z());
-    attitude_cmd.Y() = std::asin(force.X()/f.Z());
-    attitude_cmd.Z() = position_yaw_.yaw;
-  }
-  else {
-    ROS_WARN_THROTTLE_NAMED(1.0, _LOG_NAME_, "Only POSITION_YAW control is available");
-  }
-
-  // Get current Euler angles from the pose
-  // NOTE: do not use ignition's interface, since its Euler's angles are
-  // Rz*Ry*Rx, not Rx*Ry*Rz
-  im::Matrix3d R(pose_.Rot()); // current rotation matrix
-
-  // Euler's angles from R
-  im::Vector3d rho(
-    std::atan2(-R(1,2), R(2,2)),
-    std::asin(R(0,2)),
-    std::atan2(-R(0,1), R(0,0))
-  );
-
-  // matrix to map angular rates into angular velocity
-  double sp = std::sin(rho.X());
-  double cp = std::cos(rho.X());
-  double st = std::sin(rho.Y());
-  double ct = std::cos(rho.Y());
-  im::Matrix3d D(
-    1,  0, st,
-    0, cp, -sp*ct,
-    0, sp,  cp*ct
-  );
-
-  // get angular rates from current velocity
-  im::Vector3d rhod = D.Inverse() * angvel_;
-
-  // derivative of D
-  im::Matrix3d Dd(
-    0, 0, rhod.Y()*ct,
-    0, -rhod.X()*sp,  rhod.Y()*st*sp-rhod.X()*ct*cp,
-    0,  rhod.X()*ct, -rhod.Y()*st*cp-rhod.X()*sp*ct
-  );
-
-  // attitude error (note: wrap around for the YAW!)
-  im::Vector3d rho_err(
-    attitude_cmd.X()-rho.X(),
-    attitude_cmd.Y()-rho.Y(),
-    angles::shortest_angular_distance(rho.Z(), attitude_cmd.Z())
-  );
-
-  // desired angular acceleration from desired and current attitude
-  im::Vector3d wd =
-    D * ( ang_kp * rho_err - ang_kd * rhod )
-    + Dd * rhod;
-
-  // angular moment
-  tau = I * wd + angvel_.Cross(I*angvel_);
-
-  // set the wrench
-  f.X() = f.Y() = 0; // NOTE: this is just in case!
-  link_->AddRelativeForce(f);
-  link_->AddTorque(tau);
-}
-#endif
-
-
-
-
 
 
 void UavGazeboPlugin::warnIfDifferentMode(unsigned int mode) {

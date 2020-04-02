@@ -2,6 +2,7 @@
 #include "uav_gazebo/utils.hpp"
 #include <angles/angles.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
 
 #define _LOG_NAME_ "uav_gazebo_plugin"
 
@@ -51,6 +52,7 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
 
   // topics for drone control
   control.mode = control.INACTIVE; // the drone starts idle
+  odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 1);
   control_mode_sub_ = nh_.subscribe("switch_mode", 1, &UavGazeboPlugin::switchControlMode, this);
   pos_yaw_sub_ = nh_.subscribe("position_yaw/command", 1, &UavGazeboPlugin::positionYawCB, this);
   vel_yawrate_sub_ = nh_.subscribe("velocity_yawrate/command", 1, &UavGazeboPlugin::velocityYawrateCB, this);
@@ -216,12 +218,21 @@ void UavGazeboPlugin::update() {
   angvel = link_->WorldAngularVel();
 
   // publish current pose on /tf
-  geometry_msgs::TransformStamped msg;
-  pose2transform(pose, msg.transform);
-  msg.child_frame_id = link_->GetName();
-  msg.header.frame_id = "world";
-  msg.header.stamp = ros::Time::now();
-  tf_->sendTransform(msg);
+  geometry_msgs::TransformStamped tf_msg;
+  pose2transform(pose, tf_msg.transform);
+  tf_msg.child_frame_id = link_->GetName();
+  tf_msg.header.frame_id = "world";
+  tf_msg.header.stamp = ros::Time::now();
+  tf_->sendTransform(tf_msg);
+
+  // publish the pose and velocity of the drone
+  nav_msgs::Odometry odom_msg;
+  odom_msg.header = tf_msg.header;
+  odom_msg.child_frame_id = tf_msg.child_frame_id;
+  pose2pose(pose, odom_msg.pose.pose);
+  vector2vector(linvel, odom_msg.twist.twist.linear);
+  vector2vector(angvel, odom_msg.twist.twist.angular);
+  odom_pub_.publish(odom_msg);
 
   // do drone control
   switch(control.mode) {

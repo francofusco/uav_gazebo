@@ -149,6 +149,7 @@ private:
 
   // ROS topic connections
   ros::NodeHandle nh_; ///< Node Handle to connect with ROS.
+  ros::Publisher odom_pub_; ///< Publisher to provide the current pose and velocity of the drone.
   ros::Subscriber pos_yaw_sub_; ///< For messages of type PositionYawControl.
   ros::Subscriber vel_yawrate_sub_; ///< For messages of type VelocityYawRateControl.
   ros::Subscriber thr_att_sub_; ///< For messages of type ThrustAttitudeControl.

@@ -1,6 +1,7 @@
 #include "uav_gazebo/uav_gazebo_plugin.hpp"
 #include "uav_gazebo/utils.hpp"
 #include <angles/angles.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #define _LOG_NAME_ "uav_gazebo_plugin"
 
@@ -39,33 +40,31 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
 
   ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Mass: " << M << std::endl << "Inertia:" << std::endl << I);
 
-  // +++ CONTROL SETUP +++
-  control.mode = control.POSITION_YAW;
-
-  // TODO: CONFIGURATION VIA DYNAMIC RECONFIGURE
-  double _wn;
-
-  _wn = 0.5;
-  pos_kd = 2*_wn;
-  pos_kp = _wn*_wn;
-
-  _wn = 3.;
-  ang_kd = 2*_wn;
-  ang_kp = _wn*_wn;
-
-  vel_k = 1.0;
-
-  _wn = 1.5;
-  yaw_kd = 2*_wn;
-  yaw_kp = _wn*_wn;
-
-  yaw_rate_k = 2.0;
-
-  angvel_k = 3.;
-
   // +++ ROS CONNECTION +++
-  // TODO: custom namespace selected by the user (from URDF?)
-  cmd_sub_ = nh_.subscribe("command", 1, &UavGazeboPlugin::positionYawCB, this);
+  if(sdf->HasElement("rosNamespace")) {
+    std::string ns = sdf->GetElement("rosNamespace")->Get<std::string>();
+    nh_ = ros::NodeHandle(ns);
+  }
+
+  // tf publisher to provide the pose of the drone
+  tf_.reset( new tf2_ros::TransformBroadcaster() );
+
+  // topics for drone control
+  control.mode = control.INACTIVE; // the drone starts idle
+  control_mode_sub_ = nh_.subscribe("switch_mode", 1, &UavGazeboPlugin::switchControlMode, this);
+  pos_yaw_sub_ = nh_.subscribe("position_yaw/command", 1, &UavGazeboPlugin::positionYawCB, this);
+  vel_yawrate_sub_ = nh_.subscribe("velocity_yawrate/command", 1, &UavGazeboPlugin::velocityYawrateCB, this);
+  thr_att_sub_ = nh_.subscribe("thrust_attitude/command", 1, &UavGazeboPlugin::thrustAttitudeCB, this);
+  thr_vel_sub_ = nh_.subscribe("thrust_velocity/command", 1, &UavGazeboPlugin::thrustVelocityCB, this);
+  thr_trq_sub_ = nh_.subscribe("thrust_torque/command", 1, &UavGazeboPlugin::thrustTorqueCB, this);
+
+  // dynamic reconfigure
+  gains_server_.reset(
+    new dynamic_reconfigure::Server<uav_gazebo_msgs::ControlGainsConfig>(
+      ros::NodeHandle(nh_, "gains")
+    )
+  );
+  gains_server_->setCallback(boost::bind(&UavGazeboPlugin::setGains, this, _1, _2));
 
   // +++ SIMULATION SETUP +++
   update_connection_ = event::Events::ConnectWorldUpdateBegin(std::bind(&UavGazeboPlugin::update, this));
@@ -97,7 +96,7 @@ void UavGazeboPlugin::doVelocityYawRateControl(
   const double yaw_rate_star
 )
 {
-  im::Vector3d acc = vd_star + vel_k * (v_star-linvel);
+  im::Vector3d acc = vd_star + linvel_k * (v_star-linvel);
   double thrust;
   im::Vector3d rho;
   accelerationToThrustAndAttitude(acc, thrust, rho);
@@ -156,8 +155,8 @@ void UavGazeboPlugin::doThrustAttitudeControl(
 
   // evaluate the attitude commands
   im::Vector3d rhodd;
-  rhodd.X() = ang_kd * (rhod_star.X()-rhod.X()) + ang_kp * (rho_star.X()-rho.X());
-  rhodd.Y() = ang_kd * (rhod_star.Y()-rhod.Y()) + ang_kp * (rho_star.Y()-rho.Y());
+  rhodd.X() = att_kd * (rhod_star.X()-rhod.X()) + att_kp * (rho_star.X()-rho.X());
+  rhodd.Y() = att_kd * (rhod_star.Y()-rhod.Y()) + att_kp * (rho_star.Y()-rho.Y());
   rhodd.Z() = yaw_rate_only ?
     yaw_rate_k * (rhod_star.Z() - rhod.Z())
     :
@@ -201,6 +200,9 @@ void UavGazeboPlugin::doThrustTorqueControl(
   const im::Vector3d& torque
 )
 {
+  // check that the thrust is positive, if not just "cut it"
+  if(thrust < 0)
+    thrust = 0;
   // set the wrench
   link_->AddRelativeForce(im::Vector3d(0,0,thrust));
   link_->AddTorque(torque);
@@ -213,7 +215,19 @@ void UavGazeboPlugin::update() {
   linvel = link_->WorldLinearVel();
   angvel = link_->WorldAngularVel();
 
+  // publish current pose on /tf
+  geometry_msgs::TransformStamped msg;
+  pose2transform(pose, msg.transform);
+  msg.child_frame_id = link_->GetName();
+  msg.header.frame_id = "world";
+  msg.header.stamp = ros::Time::now();
+  tf_->sendTransform(msg);
+
+  // do drone control
   switch(control.mode) {
+    case control.INACTIVE:
+      doThrustTorqueControl(0, im::Vector3d());
+      break;
     case control.POSITION_YAW:
       doPositionYawControl(
         vector2vector(position_yaw.position),
@@ -250,7 +264,9 @@ void UavGazeboPlugin::update() {
         thrust_torque.thrust,
         vector2vector(thrust_torque.torque)
       ); break;
-    default: ROS_ERROR_NAMED(_LOG_NAME_, "REACHED INVALID POINT IN SWITCH CLAUSE");
+    default:
+      ROS_ERROR_NAMED(_LOG_NAME_, "Reached invalid point in switch "
+        "clause - file %s, line %d", __FILE__, __LINE__);
   }
 }
 
@@ -285,6 +301,37 @@ void UavGazeboPlugin::thrustVelocityCB(const uav_gazebo_msgs::ThrustVelocityCont
 void UavGazeboPlugin::thrustTorqueCB(const uav_gazebo_msgs::ThrustTorqueControl& msg) {
   warnIfDifferentMode(control.THRUST_TORQUE);
   thrust_torque = msg;
+}
+
+
+void UavGazeboPlugin::switchControlMode(const uav_gazebo_msgs::ControlMode& msg) {
+  if(msg.mode == control.mode) {
+    ROS_INFO_NAMED(_LOG_NAME_, "The drone is already in the desired control "
+      "mode %u", control.mode);
+  }
+  else {
+    ROS_INFO_NAMED(_LOG_NAME_, "Switching from control mode %u to %u",
+      control.mode, msg.mode);
+    control.mode = msg.mode;
+  }
+}
+
+
+void UavGazeboPlugin::setGains(uav_gazebo_msgs::ControlGainsConfig &cfg, uint32_t level) {
+  secondOrderGains(cfg.Wp, cfg.Xp, pos_kp, pos_kd);
+  linvel_k = cfg.Kv;
+  secondOrderGains(cfg.Wa, cfg.Xa, att_kp, att_kd);
+  secondOrderGains(cfg.Wy, cfg.Xy, yaw_kp, yaw_kd);
+  yaw_rate_k = cfg.Ky;
+  angvel_k = cfg.Kw;
+
+  ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Received dynamic reconfigure request."
+    << std::endl << "Position controller: kp=" << pos_kp << "  kd=" << pos_kd
+    << std::endl << "Linear velocity controller: k=" << linvel_k
+    << std::endl << "Attitude controller: kp=" << att_kp << "  kd=" << att_kd
+    << std::endl << "Yaw controller: kp=" << yaw_kp << "  kd=" << yaw_kd
+    << std::endl << "Angular velocity controller: k=" << angvel_k
+  );
 }
 
 

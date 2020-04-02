@@ -4,6 +4,7 @@
 uint8 mode
 
 # Constants that define available control modes.
+uint8 INACTIVE = 0
 uint8 POSITION_YAW = 1
 uint8 VELOCITY_YAWRATE = 2
 uint8 THRUST_ATTITUDE = 3

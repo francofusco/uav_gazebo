@@ -18,6 +18,12 @@ inline void pose2transform(const ignition::math::Pose3d& pose, geometry_msgs::Tr
   transform.rotation.z = pose.Rot().Z();
 }
 
+/// Utility function to evaluate the gains for a 2nd order control.
+void secondOrderGains(double wn, double xi, double& kp, double& kd) {
+  kp = wn*wn;
+  kd = 2*xi*wn;
+}
+
 /// Extract the x-y-z Euler angles from a rotation matrix.
 /** @param R input rotation matrix.
   * @param euler Euler angles corresponding to the input matrix.

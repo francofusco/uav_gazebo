@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="drone">
 
-  <xacro:property name="prefix" value="drone"/>
+  <xacro:arg name="name" default="drone"/>
+  <xacro:property name="prefix" value="$(arg name)"/>
 
   <xacro:property name="arm_length" value="0.35"/>
   <xacro:property name="rotor_radius" value="0.14"/>
@@ -71,6 +72,7 @@
 
   <gazebo>
     <plugin name="${prefix}_plugin" filename="libuav_gazebo_plugin.so">
+      <rosNamespace>${prefix}</rosNamespace>
 		</plugin>
   </gazebo>
 

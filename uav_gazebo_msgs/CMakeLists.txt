@@ -7,9 +7,9 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   message_generation
   std_msgs
+  dynamic_reconfigure
 )
 
-# Generate messages in the 'msg' folder
 add_message_files(
   FILES
   ControlMode.msg
@@ -20,18 +20,21 @@ add_message_files(
   ThrustTorqueControl.msg
 )
 
-## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
 #   Service1.srv
 #   Service2.srv
 # )
 
-# Generate added messages and services with any dependencies listed here
+generate_dynamic_reconfigure_options(
+  cfg/ControlGains.cfg
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
 )
+
 
 catkin_package(CATKIN_DEPENDS geometry_msgs message_runtime std_msgs)

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   angles
+  tf2_ros
   uav_gazebo_msgs
 )
 

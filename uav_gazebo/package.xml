@@ -15,5 +15,6 @@
   <depend>uav_gazebo_msgs</depend>
   <depend>roscpp</depend>
   <depend>angles</depend>
+  <depend>tf2_ros</depend>
 
 </package>

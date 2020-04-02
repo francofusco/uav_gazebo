@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   gazebo_ros
   std_msgs
   geometry_msgs
+  nav_msgs
   roscpp
   angles
   tf2_ros

@@ -3,7 +3,8 @@
 #include <ignition/math/Pose3.hh>
 #include <ignition/math/Vector3.hh>
 #include <ignition/math/Matrix3.hh>
-#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Vector3.h>
 
 /// Utility function to copy a pose from Gazebo to a ROS message.
@@ -16,6 +17,18 @@ inline void pose2transform(const ignition::math::Pose3d& pose, geometry_msgs::Tr
   transform.rotation.x = pose.Rot().X();
   transform.rotation.y = pose.Rot().Y();
   transform.rotation.z = pose.Rot().Z();
+}
+
+/// Utility function to copy a pose from Gazebo to a ROS message.
+inline void pose2pose(const ignition::math::Pose3d& pose, geometry_msgs::Pose& transform)
+{
+  transform.position.x = pose.Pos().X();
+  transform.position.y = pose.Pos().Y();
+  transform.position.z = pose.Pos().Z();
+  transform.orientation.w = pose.Rot().W();
+  transform.orientation.x = pose.Rot().X();
+  transform.orientation.y = pose.Rot().Y();
+  transform.orientation.z = pose.Rot().Z();
 }
 
 /// Utility function to evaluate the gains for a 2nd order control.
@@ -50,6 +63,13 @@ inline void vector2vector(const geometry_msgs::Vector3& in, ignition::math::Vect
   out.X() = in.x;
   out.Y() = in.y;
   out.Z() = in.z;
+}
+
+/// Convert a 3D vector from geometry_msgs to ignition format.
+inline void vector2vector(const ignition::math::Vector3d& in, geometry_msgs::Vector3& out) {
+  out.x = in.X();
+  out.y = in.Y();
+  out.x = in.Z();
 }
 
 /// Convert a 3D vector from geometry_msgs to ignition format.

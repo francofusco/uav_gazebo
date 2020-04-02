@@ -12,6 +12,7 @@
   <depend>gazebo_ros</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>uav_gazebo_msgs</depend>
   <depend>roscpp</depend>
   <depend>angles</depend>

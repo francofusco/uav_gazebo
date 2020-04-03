@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import rospy, sys
+import dynamic_reconfigure.client
+import dynamic_reconfigure.server
+from uav_gazebo_msgs.cfg import ControlGainsConfig
+
+## Class that starts a reconfigure server and forwards each request to other servers.
+class ForwardControlConfig(object):
+    ## Constructor.
+    # This class will start a server in the node private namespace. It will
+    # forward received requests to the servers that live in the namespaces
+    # `base_ns/drone_names[i]/servers_ns`.
+    def __init__(self, drone_names, base_ns="", servers_ns="gains"):
+        if base_ns != "":
+            base_ns = base_ns + "/"
+        if servers_ns != "":
+            servers_ns = "/" + servers_ns
+        servers = [base_ns + name + servers_ns for name in drone_names]
+        self.clients = [dynamic_reconfigure.client.Client(rospy.resolve_name(srv), timeout=30) for srv in servers]
+        self.server = dynamic_reconfigure.server.Server(ControlGainsConfig, self.forward_request, namespace=rospy.get_name())
+
+    ## Method to forward requests to all monitored servers.
+    def forward_request(self, cfg, level):
+        for client in self.clients:
+            client.update_configuration(cfg)
+        return cfg
+
+
+if __name__ == "__main__":
+    rospy.init_node("configure_controllers", anonymous=False)
+    # get the base namespace where all drones are expected to be
+    base_ns = rospy.get_param("~base_ns", "")
+    # dynamic reconfigure server name (there should be one for each drone)
+    servers_ns = rospy.get_param("~servers_ns", "gains")
+    # create the forwarding server
+    srv = ForwardControlConfig(sys.argv[1:], base_ns=base_ns, servers_ns=servers_ns)
+    # sleep until shutdown
+    rospy.spin()

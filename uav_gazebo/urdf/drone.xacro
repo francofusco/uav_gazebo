@@ -3,72 +3,76 @@
 
   <xacro:arg name="name" default="drone"/>
   <xacro:property name="prefix" value="$(arg name)"/>
-
-  <xacro:property name="arm_length" value="0.35"/>
-  <xacro:property name="rotor_radius" value="0.14"/>
-  <xacro:property name="base_radius" value="0.07"/>
-  <xacro:property name="arm_physical_length" value="${arm_length-base_radius-rotor_radius}"/>
-  <xacro:property name="drone_height" value="0.01"/>
-  <xacro:property name="arms_thickness" value="0.02"/>
-
-  <xacro:macro name="drone_propeller" params="theta">
-    <xacro:property name="dx" value="${cos(theta)}"/>
-    <xacro:property name="dy" value="${sin(theta)}"/>
-    <visual>
-      <origin xyz="${dx*arm_length} ${dy*arm_length} 0"/>
-      <geometry>
-        <cylinder length="${drone_height}" radius="${rotor_radius}"/>
-      </geometry>
-      <material name="grey">
-         <color rgba="0.5 0.5 0.5 1.0"/>
-     </material>
-    </visual>
-    <visual>
-      <origin xyz="${dx*(base_radius+0.5*arm_physical_length)} ${dy*(base_radius+0.5*arm_physical_length)} 0" rpy="0 0 ${theta}"/>
-      <geometry>
-        <box size="${arm_physical_length} ${arms_thickness} ${drone_height}"/>
-      </geometry>
-      <material name="grey">
-         <color rgba="0.5 0.5 0.5 1.0"/>
-     </material>
-    </visual>
-    <collision>
-      <origin xyz="${dx*arm_length} ${dy*arm_length} 0"/>
-      <geometry>
-        <cylinder length="${drone_height}" radius="${rotor_radius}"/>
-      </geometry>
-   </collision>
-   <collision>
-     <origin xyz="${dx*(base_radius+0.5*arm_physical_length)} ${dy*(base_radius+0.5*arm_physical_length)} 0" rpy="0 0 ${theta}"/>
-     <geometry>
-       <box size="${arm_physical_length} ${arms_thickness} ${drone_height}"/>
-     </geometry>
-   </collision>
-  </xacro:macro>
+  <xacro:property name="color" value="0.9 0.45 0.1 1.0"/>
 
   <link name="${prefix}">
-    <visual>
-      <geometry>
-        <cylinder length="${drone_height}" radius="${base_radius}"/>
-      </geometry>
-      <material name="grey">
-         <color rgba="0.5 0.5 0.5 1.0"/>
-     </material>
-    </visual>
-    <collision>
-      <geometry>
-        <cylinder length="${drone_height}" radius="${base_radius}"/>
-      </geometry>
-    </collision>
-    <xacro:drone_propeller theta="0"/>
-    <xacro:drone_propeller theta="${pi/2}"/>
-    <xacro:drone_propeller theta="${pi}"/>
-    <xacro:drone_propeller theta="${-pi/2}"/>
     <inertial>
       <mass value="0.5"/>
       <inertia ixx="${6.5e-4}" iyy="${6.5e-4}" izz="${1.2e-3}" ixy="0" ixz="0" iyz="0"/>
     </inertial>
+    <visual>
+      <origin xyz="-0.198844 -0.294427 0"/>
+      <geometry>
+        <mesh filename="package://uav_gazebo/urdf/drone.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="orange">
+         <color rgba="${color}"/>
+     </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.053"/>
+      <geometry>
+        <box size="0.08 0.14 0.11"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.17 0 0.09"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.13"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.17 0 0.09"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.13"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0.17 0.09"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.13"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 -0.17 0.09"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.13"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0 0.06"/>
+      <geometry>
+        <box size="0.38 0.05 0.04"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0 0.06"/>
+      <geometry>
+        <box size="0.05 0.38 0.04"/>
+      </geometry>
+    </collision>
   </link>
+
+  <gazebo reference="${prefix}">
+    <visual>
+      <material>
+        <ambient>${color}</ambient>
+        <diffuse>${color}</diffuse>
+        <specular>0.1 0.1 0.1 1</specular>
+        <emissive>0 0 0 0</emissive>
+      </material>
+    </visual>
+  </gazebo>
 
   <gazebo>
     <plugin name="${prefix}_plugin" filename="libuav_gazebo_plugin.so">

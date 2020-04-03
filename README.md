@@ -60,6 +60,15 @@ To receive control inputs, the drone is connected with several ROS topics. In ad
 
 The plugin provides a [dynamic reconfigure server](http://wiki.ros.org/dynamic_reconfigure) to change the gains of the different control layers. The server is started under the child namespace `gains`.
 
+Note that for second order (PD) controllers the parameters that can be tuned via the dynamic reconfigure server are not the proportional and derivative gains directly. Instead, they are the natural frequency and the damping coefficient.
+
+In addition, the utility node `configure_controllers` is provided in case multiple drones are being simulated and the gains have to be adapted for all of them. Given a set of drone namespaces, *e.g.*, `drone1`, `drone2`, *etc.*, you can connect to all servers by running
+```
+rosrun uav_gazebo configure_controllers drone1 drone2 ...
+```
+Such node will start a reconfigure server and forward every request to each drone.
+
+Note that by the default the servers are expected to be located in the namespaces `<drone-name>/gains`. If for any reason you need to change this, two parameters can be loaded in the private namespace of `configure_controllers`: `base_ns` and `servers_ns`. They allow to change the name of the servers to be located as `<base_ns>/<drone-name>/<servers_ns>` (note that `/` characters are added automatically when needed between the three names).
 
 ### Usage example
 

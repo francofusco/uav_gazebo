@@ -1,8 +1,10 @@
-Description to be written!
+# uav_gazebo
 
-## Example
+Plugin for simple simulation of a quad-copter in Gazebo and ROS.
 
-Start Gazebo:
+## An example for the impatients
+
+Start Gazebo (with ROS connection):
 ```
 roslaunch gazebo_ros empty_world.launch
 ```
@@ -14,6 +16,101 @@ roslaunch uav_gazebo spawn.launch
 rostopic pub -1 /drone/switch_mode uav_gazebo_msgs/ControlMode "mode: 1"
 rosrun uav_gazebo example_control
 ```
+
+## Packages
+
+- `uav_gazebo`: catkin package containing the actual Gazebo plugin plus some example code.
+- `uav_gazebo_msgs`: catkin package defining custom messages used by the plugin.
+
+## Plugin description
+
+The plugin is rather simple. The drone is assumed to be a floating rigid body, which can be moved around by apllying a generic torque and a force aligned to the z-axis of the body. The plugin can be attached to a model in the usual way, and will use the root link as the body that fully represents the drone.
+
+### Dynamic parameters
+
+The plugin will automatically collect the mass and inertia of the rigid body it is attached to, and use them as parameters for the dynamic model. There is however one restriction: the center of mass of the link must coincide with the origin of the link itself. This is because in the controllers, translational and rotational dynamics are considered to be decoupled. Note that in principle the reference frame of the inertia needs not to be aligned with the link frame, although this scenario has not be tested.
+
+### Control modes
+
+The plugin allows to control the drone in different control modes (they are discussed more in details in the [dedicated section in the theoretical background](#control-schemes)):
+
+- Position and yaw
+- Velocity and yaw rate
+- Thrust and attitude
+- Thrust and angular velocity
+- Thrust and torque
+
+In addition, the drone can be set in "idle mode". Note that the drone starts in this mode.
+
+### ROS interface
+
+To receive control inputs, the drone is connected with several ROS topics. In addition, it will provide some feedback on its state via some publishers. All ROS connections are "located" in a namespace that can be provided to the plugin via an XML tag, `rosNamespace`. It is recommended to set such namespace to something unique, such as the name of the drone, to allow control of multiple models at the same time.
+
+#### Published topics
+
+- `odometry` (type [`nav_msgs/Odometry`](http://docs.ros.org/api/nav_msgs/html/msg/Odometry.html)): used to provide the current pose and twist of the drone. Note that the covariances are not set.
+- `tf`: the plugin will publish the pose of the link it is attached to using a [`tf2::TransformBroadcaster`](http://wiki.ros.org/tf2). The reference frame id is manually set to `world` (in future versions, it might be interesting to let the user set it using an XML tag).
+
+#### Subscribed topics
+
+- `switch_mode` (type `uav_gazebo_msgs/ControlMode`): publish on this topic to change the control scheme used by the drone. Note that, as soon as the mode is switched, the controller will use the last available commands received for that mode (if no inputs had been received for that mode, they will default to zero). It is thus recommended to send at least one command *before* performing the switch, to make sure that the drone will not use outdated commands.
+- `<control-mode>/command` (types `uav_gazebo_msgs/<ControlMode>Control`): set of topics used to receive control inputs. Each topic uses a specific message type from the `uav_gazebo_msgs` package from this repository.
+
+#### Dynamic reconfiguration
+
+The plugin provides a [dynamic reconfigure server](http://wiki.ros.org/dynamic_reconfigure) to change the gains of the different control layers. The server is started under the child namespace `gains`.
+
+Note that for second order (PD) controllers the parameters that can be tuned via the dynamic reconfigure server are not the proportional and derivative gains directly. Instead, they are the natural frequency and the damping coefficient.
+
+In addition, the utility node `configure_controllers` is provided in case multiple drones are being simulated and the gains have to be adapted for all of them. Given a set of drone namespaces, *e.g.*, `drone1`, `drone2`, *etc.*, you can connect to all servers by running
+```
+rosrun uav_gazebo configure_controllers drone1 drone2 ...
+```
+Such node will start a reconfigure server and forward every request to each drone.
+
+Note that by the default the servers are expected to be located in the namespaces `<drone-name>/gains`. If for any reason you need to change this, two parameters can be loaded in the private namespace of `configure_controllers`: `base_ns` and `servers_ns`. They allow to change the name of the servers to be located as `<base_ns>/<drone-name>/<servers_ns>` (note that `/` characters are added automatically when needed between the three names).
+
+### Usage example
+
+It should be rather easy to configure the plugin. In any case, below there is a (minimal) example of URDF:
+
+```xml
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="drone">
+  <xacro:arg name="drone_name" default="drone"/>
+  <xacro:property name="prefix" value="$(arg drone_name)"/>
+
+  <link name="${prefix}">
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.07"/>
+      </geometry>
+      <material name="orange">
+         <color rgba="0.9 0.9 0.1 1.0"/>
+     </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.01" radius="0.07"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="${6.5e-4}" iyy="${6.5e-4}" izz="${1.2e-3}" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <gazebo>
+    <plugin name="${prefix}_plugin" filename="libuav_gazebo_plugin.so">
+      <rosNamespace>${prefix}</rosNamespace>
+		</plugin>
+  </gazebo>
+</robot>
+```
+
+Note that it accepts a xacro argument, `drone_name`, so that you can spawn multiple drones by changing their name. By namespacing each plugin in `drone_name`, ROS topics collision is prevented.
+
+
 
 ## Theoretical background
 

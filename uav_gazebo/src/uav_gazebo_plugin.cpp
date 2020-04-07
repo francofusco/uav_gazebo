@@ -203,8 +203,10 @@ void UavGazeboPlugin::doThrustTorqueControl(
 )
 {
   // check that the thrust is positive, if not just "cut it"
-  if(thrust < 0)
+  if(thrust < 0) {
+    ROS_WARN_THROTTLE_NAMED(1.0, _LOG_NAME_, "Received negative thrust command, setting it to 0");
     thrust = 0;
+  }
   // set the wrench
   link_->AddRelativeForce(im::Vector3d(0,0,thrust));
   link_->AddTorque(torque);

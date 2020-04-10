@@ -189,10 +189,13 @@ void UavGazeboPlugin::doThrustAngularAccelerationControl(
   const im::Vector3d& wd
 )
 {
+  // Inertia tensor in world frame coordinates:
+  //  Iw = wRb * Ib * bRw
+  im::Matrix3d Iw = im::Matrix3d(pose.Rot()) * Ib * im::Matrix3d(pose.Inverse().Rot());
   // angular moment
   doThrustTorqueControl(
     thrust,
-    I*wd + angvel.Cross(I*angvel)
+    Iw*wd + angvel.Cross(Iw*angvel)
   );
 }
 

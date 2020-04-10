@@ -155,7 +155,9 @@ where the control inputs are:
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\inline&space;f,\,\boldsymbol{\tau}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\inline&space;f,\,\boldsymbol{\tau}" title="f,\,\boldsymbol{\tau}" /></a>
 
-*i.e.*, the thrust magnitude and the torque (expressed in the world frame).
+*i.e.*, the thrust magnitude and the torque (expressed in the world frame). Note that in the dynamic model, the inertia is expressed in world frame coordinates. It can be obtained from the constant body-frame inertia by "rotating" it according to:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\inline&space;\mathrm{\mathbf{I}}&space;=&space;\mathrm{\mathbf{R}}&space;\,&space;\mathrm{\mathbf{I}}_{b}&space;\,&space;\mathrm{\mathbf{R}}^T" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\inline&space;\mathrm{\mathbf{I}}&space;=&space;\mathrm{\mathbf{R}}&space;\,&space;\mathrm{\mathbf{I}}_{b}&space;\,&space;\mathrm{\mathbf{R}}^T" title="\mathrm{\mathbf{I}} = \mathrm{\mathbf{R}} \, \mathrm{\mathbf{I}}_{b} \, \mathrm{\mathbf{R}}^T" /></a>
 
 
 

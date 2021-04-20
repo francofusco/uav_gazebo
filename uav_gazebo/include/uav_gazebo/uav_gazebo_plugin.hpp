@@ -51,7 +51,8 @@ private:
   void doVelocityYawRateControl(
     const im::Vector3d& v_star,
     const im::Vector3d& vd_star,
-    const double yaw_rate_star
+    const double yaw_rate_star,
+    bool body_frame
   );
 
   /// Auxiliary function to evaluate the desired thrust and attitude from a 3D acceleration.

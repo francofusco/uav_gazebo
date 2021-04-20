@@ -8,3 +8,6 @@ geometry_msgs/Vector3 acceleration
 
 # Desired yaw (Z) rate.
 float64 yaw_rate
+
+# Allows the command to be read in body/world frame
+bool body_frame

@@ -119,7 +119,7 @@ private:
   /// Connection to perform control at each iteration.
   event::ConnectionPtr update_connection_;
 
-  im::Matrix3d I; ///< Inertia of the drone.
+  im::Matrix3d Ib; ///< Inertia of the drone.
   double M; ///< Mass of the drone.
   im::Pose3d pose; ///< Pose of the drone.
   im::Vector3d linvel; ///< Linear velocity of the drone (in the world frame).

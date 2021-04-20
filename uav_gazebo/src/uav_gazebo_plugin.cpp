@@ -37,9 +37,9 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
 
   // mass and inertia tensor
   M = inertial->Mass();
-  I = inertial->MOI();
+  Ib = inertial->MOI();
 
-  ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Mass: " << M << std::endl << "Inertia:" << std::endl << I);
+  ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Mass: " << M << std::endl << "Inertia:" << std::endl << Ib);
 
   // +++ ROS CONNECTION +++
   if(sdf->HasElement("rosNamespace")) {

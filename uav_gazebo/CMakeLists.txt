@@ -25,7 +25,11 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
 add_library(${PROJECT_NAME}_plugin SHARED src/${PROJECT_NAME}_plugin.cpp)
 target_link_libraries(${PROJECT_NAME}_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} -Wl,--no-undefined)
 
+add_executable(simple_drone_manager src/simple_drone_manager.cpp)
+target_link_libraries(simple_drone_manager ${catkin_LIBRARIES})
+
 install(
-  TARGETS ${PROJECT_NAME}_plugin
+  TARGETS ${PROJECT_NAME}_plugin simple_drone_manager
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

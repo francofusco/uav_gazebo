@@ -15,6 +15,8 @@
 #include <uav_gazebo_msgs/ThrustVelocityControl.h>
 #include <uav_gazebo_msgs/ThrustTorqueControl.h>
 #include <uav_gazebo_msgs/ControlMode.h>
+#include <uav_gazebo_msgs/GetMode.h>
+#include <uav_gazebo_msgs/SwitchMode.h>
 #include <uav_gazebo_msgs/ControlGainsConfig.h>
 
 
@@ -107,8 +109,17 @@ private:
   /// Callback to get desired thrust and torque.
   void thrustTorqueCB(const uav_gazebo_msgs::ThrustTorqueControl& msg);
 
-  /// Method to change the current control mode.
-  void switchControlMode(const uav_gazebo_msgs::ControlMode& msg);
+  /// Service to get the current control mode.
+  bool getControlMode(
+    uav_gazebo_msgs::GetMode::Request& request,
+    uav_gazebo_msgs::GetMode::Response& response
+  );
+
+  /// Service to change the current control mode.
+  bool switchControlMode(
+    uav_gazebo_msgs::SwitchMode::Request& request,
+    uav_gazebo_msgs::SwitchMode::Response& response
+  );
 
   /// Dynamic reconfigure callback to set control gains.
   void setGains(uav_gazebo_msgs::ControlGainsConfig &config, uint32_t level);
@@ -156,6 +167,8 @@ private:
   ros::Subscriber thr_att_sub_; ///< For messages of type ThrustAttitudeControl.
   ros::Subscriber thr_vel_sub_; ///< For messages of type ThrustVelocityControl.
   ros::Subscriber thr_trq_sub_; ///< For messages of type ThrustTorqueControl.
+  ros::ServiceServer get_mode_srv_; ///< ROS service to get the current control mode.
+  ros::ServiceServer switch_mode_srv_; ///< ROS service to switch control mode.
   ros::Subscriber control_mode_sub_; ///< ROS subscriber to switch control mode.
 
   /// Dynamic reconfigure server to update control gains.

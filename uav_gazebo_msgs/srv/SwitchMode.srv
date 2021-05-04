@@ -1,0 +1,3 @@
+uav_gazebo_msgs/ControlMode mode
+---
+bool success

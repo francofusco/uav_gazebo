@@ -37,9 +37,9 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
 
   // mass and inertia tensor
   M = inertial->Mass();
-  I = inertial->MOI();
+  Ib = inertial->MOI();
 
-  ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Mass: " << M << std::endl << "Inertia:" << std::endl << I);
+  ROS_DEBUG_STREAM_NAMED(_LOG_NAME_, "Mass: " << M << std::endl << "Inertia:" << std::endl << Ib);
 
   // +++ ROS CONNECTION +++
   if(sdf->HasElement("rosNamespace")) {
@@ -95,10 +95,14 @@ void UavGazeboPlugin::doPositionYawControl(
 void UavGazeboPlugin::doVelocityYawRateControl(
   const im::Vector3d& v_star,
   const im::Vector3d& vd_star,
-  const double yaw_rate_star
+  const double yaw_rate_star,
+  bool body_frame
 )
 {
-  im::Vector3d acc = vd_star + linvel_k * (v_star-linvel);
+  im::Vector3d acc =
+    body_frame
+    ? pose.Rot() * ( vd_star + linvel_k * (v_star-pose.Inverse().Rot()*linvel) )
+    : vd_star + linvel_k * (v_star-linvel);
   double thrust;
   im::Vector3d rho;
   accelerationToThrustAndAttitude(acc, thrust, rho);
@@ -257,7 +261,8 @@ void UavGazeboPlugin::update() {
       doVelocityYawRateControl(
         vector2vector(velocity_yawrate.velocity),
         vector2vector(velocity_yawrate.acceleration),
-        velocity_yawrate.yaw_rate
+        velocity_yawrate.yaw_rate,
+        velocity_yawrate.body_frame
       );
       break;
     case control.THRUST_ATTITUDE:

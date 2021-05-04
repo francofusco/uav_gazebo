@@ -51,7 +51,8 @@ private:
   void doVelocityYawRateControl(
     const im::Vector3d& v_star,
     const im::Vector3d& vd_star,
-    const double yaw_rate_star
+    const double yaw_rate_star,
+    bool body_frame
   );
 
   /// Auxiliary function to evaluate the desired thrust and attitude from a 3D acceleration.
@@ -119,7 +120,7 @@ private:
   /// Connection to perform control at each iteration.
   event::ConnectionPtr update_connection_;
 
-  im::Matrix3d I; ///< Inertia of the drone.
+  im::Matrix3d Ib; ///< Inertia of the drone.
   double M; ///< Mass of the drone.
   im::Pose3d pose; ///< Pose of the drone.
   im::Vector3d linvel; ///< Linear velocity of the drone (in the world frame).

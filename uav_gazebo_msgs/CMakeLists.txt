@@ -20,11 +20,13 @@ add_message_files(
   ThrustTorqueControl.msg
 )
 
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  GetMode.srv
+  SwitchMode.srv
+  Takeoff.srv
+  Land.srv
+)
 
 generate_dynamic_reconfigure_options(
   cfg/ControlGains.cfg

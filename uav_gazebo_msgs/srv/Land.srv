@@ -1,0 +1,7 @@
+bool force_landing
+float64 land_time
+float64 idle_time
+float64 maximum_residual
+---
+bool landed_forcefully
+bool success

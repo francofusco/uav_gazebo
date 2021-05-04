@@ -53,7 +53,8 @@ void UavGazeboPlugin::Load(physics::ModelPtr model, sdf::ElementPtr sdf) {
   // topics for drone control
   control.mode = control.INACTIVE; // the drone starts idle
   odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 1);
-  control_mode_sub_ = nh_.subscribe("switch_mode", 1, &UavGazeboPlugin::switchControlMode, this);
+  get_mode_srv_ = nh_.advertiseService("get_mode", &UavGazeboPlugin::getControlMode, this);
+  switch_mode_srv_ = nh_.advertiseService("switch_mode", &UavGazeboPlugin::switchControlMode, this);
   pos_yaw_sub_ = nh_.subscribe("position_yaw/command", 1, &UavGazeboPlugin::positionYawCB, this);
   vel_yawrate_sub_ = nh_.subscribe("velocity_yawrate/command", 1, &UavGazeboPlugin::velocityYawrateCB, this);
   thr_att_sub_ = nh_.subscribe("thrust_attitude/command", 1, &UavGazeboPlugin::thrustAttitudeCB, this);
@@ -325,16 +326,32 @@ void UavGazeboPlugin::thrustTorqueCB(const uav_gazebo_msgs::ThrustTorqueControl&
 }
 
 
-void UavGazeboPlugin::switchControlMode(const uav_gazebo_msgs::ControlMode& msg) {
-  if(msg.mode == control.mode) {
+bool UavGazeboPlugin::getControlMode(
+  uav_gazebo_msgs::GetMode::Request& request,
+  uav_gazebo_msgs::GetMode::Response& response
+)
+{
+  response.mode.mode = control.mode;
+  return true;
+}
+
+
+bool UavGazeboPlugin::switchControlMode(
+  uav_gazebo_msgs::SwitchMode::Request& request,
+  uav_gazebo_msgs::SwitchMode::Response& response
+)
+{
+  if(request.mode.mode == control.mode) {
     ROS_INFO_NAMED(_LOG_NAME_, "The drone is already in the desired control "
       "mode %u", control.mode);
   }
   else {
     ROS_INFO_NAMED(_LOG_NAME_, "Switching from control mode %u to %u",
-      control.mode, msg.mode);
-    control.mode = msg.mode;
+      control.mode, request.mode.mode);
+    control.mode = request.mode.mode;
   }
+  response.success = true;
+  return true;
 }
 
 

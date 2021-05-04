@@ -12,4 +12,9 @@
 
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -x $(arg pos_x) -y $(arg pos_y) -z $(arg pos_z) -urdf -model $(arg name)" output="screen"/>
 
+  <!-- Start a node that simplifies the "takeoff" process -->
+  <node name="simple_drone_manager" pkg="uav_gazebo" type="simple_drone_manager" output="screen">
+    <param name="drone_namespace" value="$(arg name)"/>
+  </node>
+
 </launch>

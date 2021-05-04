@@ -1,0 +1,7 @@
+bool force_takeoff
+float64 height
+float64 takeoff_time
+float64 idle_time
+---
+bool success
+float64 residual
